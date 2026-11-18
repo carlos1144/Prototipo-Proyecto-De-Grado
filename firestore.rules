@@ -1,0 +1,460 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmailKey(email) {
+      return email is string && email.size() >= 5 && email.size() <= 160 && email.matches('^[^/]+@[^/]+\\.[^/]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token.email == 'carlosulcue@hotmail.com';
+    }
+
+    function hasStaffProfile() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.activo == true;
+    }
+
+    function staffRole() {
+      return get(/databases/$(database)/documents/funcionarios/$(request.auth.uid)).data.rol;
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (hasStaffProfile() && staffRole() == 'admin');
+    }
+
+    function isStaff() {
+      return isBootstrappedAdmin() || hasStaffProfile();
+    }
+
+    function hasAnyRole(roles) {
+      return isAdmin() || (hasStaffProfile() && staffRole() in roles);
+    }
+
+    // --- Validation Blueprints ---
+    function isValidVereda(data) {
+      return data.keys().hasAll(['id', 'nombre', 'zona', 'activa'])
+        && data.keys().hasOnly(['id', 'nombre', 'zona', 'activa'])
+        && isValidId(data.id)
+        && data.nombre is string && data.nombre.size() >= 2 && data.nombre.size() <= 120
+        && data.zona is string && data.zona.size() >= 2 && data.zona.size() <= 80
+        && data.activa is bool;
+    }
+
+    function isValidTipoDocumento(data) {
+      return data.keys().hasAll(['id', 'categoria', 'nombre', 'descripcion', 'tarifa_cop', 'requiere_residencia_365', 'requiere_trabajo_social', 'requiere_visto_bueno', 'activo', 'orden'])
+        && data.keys().hasOnly(['id', 'categoria', 'nombre', 'descripcion', 'tarifa_cop', 'requiere_residencia_365', 'requiere_trabajo_social', 'requiere_visto_bueno', 'activo', 'orden'])
+        && isValidId(data.id)
+        && data.categoria in ['constancia', 'aval', 'certificado']
+        && data.nombre is string && data.nombre.size() >= 3 && data.nombre.size() <= 120
+        && data.descripcion is string && data.descripcion.size() >= 3 && data.descripcion.size() <= 500
+        && data.tarifa_cop is number && data.tarifa_cop >= 0 && data.tarifa_cop <= 5000000
+        && data.requiere_residencia_365 is bool
+        && data.requiere_trabajo_social is bool
+        && data.requiere_visto_bueno is bool
+        && data.activo is bool
+        && data.orden is number;
+    }
+
+    function isValidCensoRegistro(data) {
+      return data.keys().hasAll(['docKey', 'tipo_documento', 'numero_documento', 'nombres', 'apellidos', 'vereda', 'fecha_ingreso_censo', 'fecha_inicio_residencia', 'estado_censal', 'trabajo_social_vigente', 'updatedAt', 'updatedBy'])
+        && data.keys().hasOnly(['docKey', 'tipo_documento', 'numero_documento', 'nombres', 'apellidos', 'fecha_nacimiento', 'vereda', 'fecha_ingreso_censo', 'fecha_inicio_residencia', 'estado_censal', 'cabeza_familia', 'telefono', 'trabajo_social_vigente', 'fecha_trabajo_social', 'horas_trabajo_social', 'updatedAt', 'updatedBy'])
+        && isValidId(data.docKey)
+        && data.tipo_documento in ['CC', 'TI', 'RC', 'CE']
+        && data.numero_documento is string && data.numero_documento.size() >= 4 && data.numero_documento.size() <= 32
+        && data.nombres is string && data.nombres.size() >= 2 && data.nombres.size() <= 100
+        && data.apellidos is string && data.apellidos.size() >= 2 && data.apellidos.size() <= 100
+        && (!('fecha_nacimiento' in data) || (data.fecha_nacimiento is string && data.fecha_nacimiento.size() <= 16))
+        && data.vereda is string && data.vereda.size() >= 2 && data.vereda.size() <= 120
+        && data.fecha_ingreso_censo is string && data.fecha_ingreso_censo.size() == 10
+        && data.fecha_inicio_residencia is string && data.fecha_inicio_residencia.size() == 10
+        && data.estado_censal in ['activo', 'inactivo', 'trasladado']
+        && (!('cabeza_familia' in data) || (data.cabeza_familia is string && data.cabeza_familia.size() <= 120))
+        && (!('telefono' in data) || (data.telefono is string && data.telefono.size() <= 32))
+        && data.trabajo_social_vigente is bool
+        && (!('fecha_trabajo_social' in data) || (data.fecha_trabajo_social is string && data.fecha_trabajo_social.size() <= 16))
+        && (!('horas_trabajo_social' in data) || (data.horas_trabajo_social is number && data.horas_trabajo_social >= 0 && data.horas_trabajo_social <= 1000))
+        && data.updatedAt == request.time
+        && data.updatedBy is string && data.updatedBy.size() <= 128;
+    }
+
+    function isValidCensoConsulta(data) {
+      return data.keys().hasAll(['docKey', 'tipo_documento', 'numero_documento', 'nombre_completo', 'vereda', 'fecha_inicio_residencia', 'estado_censal', 'trabajo_social_vigente', 'updatedAt'])
+        && data.keys().hasOnly(['docKey', 'tipo_documento', 'numero_documento', 'nombre_completo', 'vereda', 'fecha_inicio_residencia', 'estado_censal', 'trabajo_social_vigente', 'fecha_trabajo_social', 'updatedAt'])
+        && isValidId(data.docKey)
+        && data.tipo_documento in ['CC', 'TI', 'RC', 'CE']
+        && data.numero_documento is string && data.numero_documento.size() >= 4 && data.numero_documento.size() <= 32
+        && data.nombre_completo is string && data.nombre_completo.size() >= 3 && data.nombre_completo.size() <= 200
+        && data.vereda is string && data.vereda.size() >= 2 && data.vereda.size() <= 120
+        && data.fecha_inicio_residencia is string && data.fecha_inicio_residencia.size() == 10
+        && data.estado_censal in ['activo', 'inactivo', 'trasladado']
+        && data.trabajo_social_vigente is bool
+        && (!('fecha_trabajo_social' in data) || (data.fecha_trabajo_social is string && data.fecha_trabajo_social.size() <= 16))
+        && data.updatedAt == request.time;
+    }
+
+    function isValidSolicitud(data) {
+      return data.keys().hasAll(['radicado', 'docKey', 'tipo_documento_identidad', 'numero_documento', 'solicitante_nombre', 'vereda', 'tipo_documento_id', 'tipo_documento_nombre', 'categoria', 'motivo', 'tarifa_cop', 'requiere_visto_bueno', 'visto_bueno_estado', 'pagado', 'estado', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['radicado', 'docKey', 'tipo_documento_identidad', 'numero_documento', 'solicitante_nombre', 'vereda', 'tipo_documento_id', 'tipo_documento_nombre', 'categoria', 'motivo', 'tarifa_cop', 'requiere_visto_bueno', 'visto_bueno_estado', 'visto_bueno_por', 'visto_bueno_observacion', 'pagado', 'recibo_pago', 'estado', 'codigo_verificacion', 'createdAt', 'updatedAt'])
+        && isValidId(data.radicado)
+        && isValidId(data.docKey)
+        && data.tipo_documento_identidad in ['CC', 'TI', 'RC', 'CE']
+        && data.numero_documento is string && data.numero_documento.size() >= 4 && data.numero_documento.size() <= 32
+        && data.solicitante_nombre is string && data.solicitante_nombre.size() >= 3 && data.solicitante_nombre.size() <= 200
+        && data.vereda is string && data.vereda.size() >= 2 && data.vereda.size() <= 120
+        && isValidId(data.tipo_documento_id)
+        && data.tipo_documento_nombre is string && data.tipo_documento_nombre.size() >= 3 && data.tipo_documento_nombre.size() <= 120
+        && data.categoria in ['constancia', 'aval', 'certificado']
+        && data.motivo is string && data.motivo.size() >= 3 && data.motivo.size() <= 300
+        && data.tarifa_cop is number && data.tarifa_cop >= 0 && data.tarifa_cop <= 5000000
+        && data.requiere_visto_bueno is bool
+        && data.visto_bueno_estado in ['no_requerido', 'pendiente', 'aprobado', 'rechazado']
+        && (!('visto_bueno_por' in data) || (data.visto_bueno_por is string && data.visto_bueno_por.size() <= 160))
+        && (!('visto_bueno_observacion' in data) || (data.visto_bueno_observacion is string && data.visto_bueno_observacion.size() <= 300))
+        && data.pagado is bool
+        && (!('recibo_pago' in data) || (data.recibo_pago is string && data.recibo_pago.size() <= 64))
+        && data.estado in ['pendiente_visto_bueno', 'pendiente_pago', 'listo_expedicion', 'emitido', 'rechazado', 'anulado']
+        && (!('codigo_verificacion' in data) || (data.codigo_verificacion is string && data.codigo_verificacion.size() <= 40))
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isSafeSelfServiceSolicitud(data) {
+      return data.createdAt == request.time
+        && (!('recibo_pago' in data))
+        && (!('visto_bueno_por' in data))
+        && (
+          (data.requiere_visto_bueno == true && data.visto_bueno_estado == 'pendiente' && data.pagado == false && data.estado == 'pendiente_visto_bueno' && !('codigo_verificacion' in data))
+          || (data.requiere_visto_bueno == false && data.visto_bueno_estado == 'no_requerido' && data.tarifa_cop > 0 && data.pagado == false && data.estado == 'pendiente_pago' && !('codigo_verificacion' in data))
+          || (data.requiere_visto_bueno == false && data.visto_bueno_estado == 'no_requerido' && data.tarifa_cop == 0 && data.pagado == true && data.estado == 'emitido' && ('codigo_verificacion' in data) && isValidId(data.codigo_verificacion))
+        );
+    }
+
+    function isValidRadicadosPorDoc(data) {
+      return data.keys().hasAll(['docKey', 'radicados', 'updatedAt'])
+        && data.keys().hasOnly(['docKey', 'radicados', 'updatedAt'])
+        && isValidId(data.docKey)
+        && data.radicados is list && data.radicados.size() >= 1 && data.radicados.size() <= 50
+        && data.radicados[0] is string && data.radicados[0].size() <= 40
+        && data.updatedAt == request.time;
+    }
+
+    function isValidDocumentoEmitido(data) {
+      return data.keys().hasAll(['codigo_verificacion', 'radicado', 'docKey', 'solicitante_nombre', 'tipo_documento_identidad', 'numero_documento', 'vereda', 'tipo_documento_id', 'tipo_documento_nombre', 'categoria', 'motivo', 'tarifa_cop', 'autoridad_firmante', 'fecha_emision', 'vigente'])
+        && data.keys().hasOnly(['codigo_verificacion', 'radicado', 'docKey', 'solicitante_nombre', 'tipo_documento_identidad', 'numero_documento', 'vereda', 'tipo_documento_id', 'tipo_documento_nombre', 'categoria', 'motivo', 'tarifa_cop', 'recibo_pago', 'autoridad_firmante', 'fecha_emision', 'vigente', 'motivo_anulacion'])
+        && isValidId(data.codigo_verificacion)
+        && isValidId(data.radicado)
+        && isValidId(data.docKey)
+        && data.solicitante_nombre is string && data.solicitante_nombre.size() >= 3 && data.solicitante_nombre.size() <= 200
+        && data.tipo_documento_identidad in ['CC', 'TI', 'RC', 'CE']
+        && data.numero_documento is string && data.numero_documento.size() >= 4 && data.numero_documento.size() <= 32
+        && data.vereda is string && data.vereda.size() >= 2 && data.vereda.size() <= 120
+        && isValidId(data.tipo_documento_id)
+        && data.tipo_documento_nombre is string && data.tipo_documento_nombre.size() >= 3 && data.tipo_documento_nombre.size() <= 120
+        && data.categoria in ['constancia', 'aval', 'certificado']
+        && data.motivo is string && data.motivo.size() >= 3 && data.motivo.size() <= 300
+        && data.tarifa_cop is number && data.tarifa_cop >= 0 && data.tarifa_cop <= 5000000
+        && (!('recibo_pago' in data) || (data.recibo_pago is string && data.recibo_pago.size() <= 64))
+        && data.autoridad_firmante is string && data.autoridad_firmante.size() >= 3 && data.autoridad_firmante.size() <= 160
+        && data.fecha_emision is timestamp
+        && data.vigente is bool
+        && (!('motivo_anulacion' in data) || (data.motivo_anulacion is string && data.motivo_anulacion.size() <= 300));
+    }
+
+    function isValidTrabajoSocial(data) {
+      return data.keys().hasAll(['id', 'docKey', 'comunero_nombre', 'actividad', 'fecha', 'horas', 'aprobado', 'registrado_por', 'createdAt'])
+        && data.keys().hasOnly(['id', 'docKey', 'comunero_nombre', 'actividad', 'fecha', 'horas', 'aprobado', 'registrado_por', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.docKey)
+        && data.comunero_nombre is string && data.comunero_nombre.size() >= 3 && data.comunero_nombre.size() <= 200
+        && data.actividad is string && data.actividad.size() >= 3 && data.actividad.size() <= 200
+        && data.fecha is string && data.fecha.size() == 10
+        && data.horas is number && data.horas >= 1 && data.horas <= 200
+        && data.aprobado is bool
+        && data.registrado_por is string && data.registrado_por.size() >= 2 && data.registrado_por.size() <= 160
+        && data.createdAt == request.time;
+    }
+
+    function isValidPagoTesoreria(data) {
+      return data.keys().hasAll(['recibo_numero', 'radicado', 'docKey', 'comunero_nombre', 'monto_cop', 'metodo_pago', 'tesorero_nombre', 'fecha_pago'])
+        && data.keys().hasOnly(['recibo_numero', 'radicado', 'docKey', 'comunero_nombre', 'monto_cop', 'metodo_pago', 'canal_pago', 'referencia_pasarela', 'tesorero_nombre', 'fecha_pago'])
+        && isValidId(data.recibo_numero)
+        && isValidId(data.radicado)
+        && isValidId(data.docKey)
+        && data.comunero_nombre is string && data.comunero_nombre.size() >= 3 && data.comunero_nombre.size() <= 200
+        && data.monto_cop is number && data.monto_cop > 0 && data.monto_cop <= 5000000
+        && data.metodo_pago in ['efectivo', 'transferencia', 'consignacion', 'nequi', 'pse', 'tarjeta']
+        && (!('canal_pago' in data) || (data.canal_pago in ['tesoreria_presencial', 'pasarela_en_linea']))
+        && (!('referencia_pasarela' in data) || (data.referencia_pasarela is string && data.referencia_pasarela.size() <= 80))
+        && data.tesorero_nombre is string && data.tesorero_nombre.size() >= 3 && data.tesorero_nombre.size() <= 160
+        && data.fecha_pago == request.time;
+    }
+
+    function isValidAuditoria(data) {
+      return data.keys().hasAll(['id', 'accion', 'entidad', 'entidad_id', 'actor', 'rol', 'detalle', 'timestamp'])
+        && data.keys().hasOnly(['id', 'accion', 'entidad', 'entidad_id', 'actor', 'rol', 'detalle', 'timestamp'])
+        && isValidId(data.id)
+        && data.accion in ['SOLICITUD', 'VISTO_BUENO', 'RECHAZO', 'PAGO', 'EXPEDICION', 'ANULACION', 'CENSO_ACTUALIZACION', 'TRABAJO_SOCIAL']
+        && data.entidad is string && data.entidad.size() >= 2 && data.entidad.size() <= 40
+        && data.entidad_id is string && data.entidad_id.size() >= 1 && data.entidad_id.size() <= 80
+        && data.actor is string && data.actor.size() >= 2 && data.actor.size() <= 160
+        && data.rol is string && data.rol.size() >= 2 && data.rol.size() <= 40
+        && data.detalle is string && data.detalle.size() >= 3 && data.detalle.size() <= 500
+        && data.timestamp == request.time;
+    }
+
+    function isValidFuncionario(data, targetUid) {
+      return data.keys().hasAll(['uid', 'email', 'nombre', 'cargo', 'rol', 'activo', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'nombre', 'cargo', 'rol', 'activo', 'updatedAt'])
+        && data.uid == targetUid
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 160
+        && data.nombre is string && data.nombre.size() >= 2 && data.nombre.size() <= 160
+        && data.cargo is string && data.cargo.size() >= 2 && data.cargo.size() <= 120
+        && data.rol in ['admin', 'gobernador', 'secretario', 'tesorero', 'trabajador_social']
+        && data.activo is bool
+        && data.updatedAt == request.time;
+    }
+
+    function isValidAutorizacionCorreo(data, emailId) {
+      return data.keys().hasAll(['email', 'nombre', 'cargo', 'rol', 'activo', 'autorizado_por', 'updatedAt'])
+        && data.keys().hasOnly(['email', 'nombre', 'cargo', 'rol', 'activo', 'autorizado_por', 'updatedAt'])
+        && data.email == emailId
+        && data.nombre is string && data.nombre.size() >= 2 && data.nombre.size() <= 160
+        && data.cargo is string && data.cargo.size() >= 2 && data.cargo.size() <= 120
+        && data.rol in ['admin', 'gobernador', 'secretario', 'tesorero', 'trabajador_social']
+        && data.activo is bool
+        && data.autorizado_por is string && data.autorizado_por.size() >= 2 && data.autorizado_por.size() <= 160
+        && data.updatedAt == request.time;
+    }
+
+    // --- Collection Rules ---
+
+    // Public catalogs: readable by anyone, writable only by admin
+    match /veredas/{veredaId} {
+      allow get: if isValidId(veredaId);
+      allow list: if true;
+      allow create, update: if isAdmin() && isValidId(veredaId) && isValidVereda(incoming());
+      allow delete: if isAdmin() && isValidId(veredaId);
+    }
+
+    match /tipos_documento/{tipoId} {
+      allow get: if isValidId(tipoId);
+      allow list: if true;
+      allow create, update: if isAdmin() && isValidId(tipoId) && isValidTipoDocumento(incoming());
+      allow delete: if isAdmin() && isValidId(tipoId);
+    }
+
+    // Full Census PII: strictly restricted to Cabildo staff (RN3)
+    match /censo/{docKey} {
+      allow get: if isStaff() && isValidId(docKey);
+      allow list: if isStaff();
+      allow create: if hasAnyRole(['admin', 'secretario', 'trabajador_social']) && isValidId(docKey) && isValidCensoRegistro(incoming());
+      allow update: if hasAnyRole(['admin', 'secretario', 'trabajador_social']) && isValidId(docKey) && isValidCensoRegistro(incoming()) && incoming().docKey == existing().docKey;
+      allow delete: if false;
+    }
+
+    // Public Eligibility Projection: direct lookup only (allow get), NO listing allowed
+    match /censo_consultas/{docKey} {
+      allow get: if isValidId(docKey);
+      allow list: if isStaff();
+      allow create, update: if hasAnyRole(['admin', 'secretario', 'trabajador_social']) && isValidId(docKey) && isValidCensoConsulta(incoming());
+      allow delete: if false;
+    }
+
+    // Requests (Solicitudes): direct radicado lookup by comunero, full listing by staff, atomic online payment transition
+    match /solicitudes/{radicado} {
+      allow get: if isValidId(radicado);
+      allow list: if isStaff();
+      allow create: if isValidId(radicado)
+        && isValidSolicitud(incoming())
+        && isSafeSelfServiceSolicitud(incoming())
+        && exists(/databases/$(database)/documents/censo_consultas/$(incoming().docKey))
+        && get(/databases/$(database)/documents/censo_consultas/$(incoming().docKey)).data.estado_censal == 'activo'
+        && exists(/databases/$(database)/documents/tipos_documento/$(incoming().tipo_documento_id))
+        && get(/databases/$(database)/documents/tipos_documento/$(incoming().tipo_documento_id)).data.tarifa_cop == incoming().tarifa_cop
+        && get(/databases/$(database)/documents/tipos_documento/$(incoming().tipo_documento_id)).data.requiere_visto_bueno == incoming().requiere_visto_bueno;
+
+      allow update: if isValidId(radicado)
+        && isValidSolicitud(incoming())
+        && incoming().radicado == existing().radicado
+        && incoming().docKey == existing().docKey
+        && incoming().createdAt == existing().createdAt
+        && (
+          (
+            isStaff()
+            && (
+              (isAdmin() && existing().estado == 'emitido' && incoming().estado == 'anulado' && incoming().diff(existing()).affectedKeys().hasOnly(['estado', 'updatedAt']))
+              || (
+                !(existing().estado in ['emitido', 'rechazado', 'anulado'])
+                && (
+                  isAdmin()
+                  || (hasAnyRole(['gobernador']) && existing().estado == 'pendiente_visto_bueno' && incoming().diff(existing()).affectedKeys().hasOnly(['visto_bueno_estado', 'visto_bueno_por', 'visto_bueno_observacion', 'estado', 'updatedAt']))
+                  || (hasAnyRole(['tesorero']) && existing().estado == 'pendiente_pago' && incoming().pagado == true && incoming().diff(existing()).affectedKeys().hasOnly(['pagado', 'recibo_pago', 'estado', 'updatedAt']))
+                  || (hasAnyRole(['secretario', 'gobernador']) && incoming().diff(existing()).affectedKeys().hasOnly(['estado', 'codigo_verificacion', 'updatedAt']))
+                )
+              )
+            )
+          )
+          || (
+            existing().estado == 'pendiente_pago'
+            && existing().pagado == false
+            && incoming().tarifa_cop == existing().tarifa_cop
+            && incoming().estado == 'emitido'
+            && incoming().pagado == true
+            && ('recibo_pago' in incoming()) && isValidId(incoming().recibo_pago)
+            && ('codigo_verificacion' in incoming()) && isValidId(incoming().codigo_verificacion)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['pagado', 'recibo_pago', 'estado', 'codigo_verificacion', 'updatedAt'])
+            && existsAfter(/databases/$(database)/documents/pagos_tesoreria/$(incoming().recibo_pago))
+            && getAfter(/databases/$(database)/documents/pagos_tesoreria/$(incoming().recibo_pago)).data.monto_cop == existing().tarifa_cop
+            && existsAfter(/databases/$(database)/documents/documentos_emitidos/$(incoming().codigo_verificacion))
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // Bounded radicado index per docKey: direct get only, no list
+    match /radicados_por_documento/{docKey} {
+      allow get: if isValidId(docKey);
+      allow list: if false;
+      allow create: if isValidId(docKey)
+        && isValidRadicadosPorDoc(incoming())
+        && exists(/databases/$(database)/documents/censo_consultas/$(docKey));
+      allow update: if isValidId(docKey)
+        && isValidRadicadosPorDoc(incoming())
+        && exists(/databases/$(database)/documents/censo_consultas/$(docKey))
+        && (isStaff() || incoming().radicados.hasAll(existing().radicados));
+      allow delete: if false;
+    }
+
+    // Issued Documents (QR Verification): direct get by verification code, list by staff only
+    match /documentos_emitidos/{codigoVerificacion} {
+      allow get: if isValidId(codigoVerificacion);
+      allow list: if isStaff();
+      allow create: if isValidId(codigoVerificacion)
+        && isValidDocumentoEmitido(incoming())
+        && incoming().fecha_emision == request.time
+        && incoming().vigente == true
+        && (
+          hasAnyRole(['admin', 'secretario', 'gobernador'])
+          || (
+            existsAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado))
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.estado == 'emitido'
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.codigo_verificacion == codigoVerificacion
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.pagado == true
+            && (
+              incoming().tarifa_cop == 0
+              || (
+                ('recibo_pago' in incoming())
+                && isValidId(incoming().recibo_pago)
+                && existsAfter(/databases/$(database)/documents/pagos_tesoreria/$(incoming().recibo_pago))
+              )
+            )
+          )
+        );
+      allow update: if hasAnyRole(['admin', 'gobernador'])
+        && isValidId(codigoVerificacion)
+        && isValidDocumentoEmitido(incoming())
+        && incoming().codigo_verificacion == existing().codigo_verificacion
+        && incoming().fecha_emision == existing().fecha_emision
+        && incoming().diff(existing()).affectedKeys().hasOnly(['vigente', 'motivo_anulacion']);
+      allow delete: if false;
+    }
+
+    // Social Work (RN4)
+    match /trabajo_social/{registroId} {
+      allow get: if isStaff() && isValidId(registroId);
+      allow list: if isStaff();
+      allow create: if hasAnyRole(['admin', 'trabajador_social', 'secretario'])
+        && isValidId(registroId)
+        && isValidTrabajoSocial(incoming());
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Treasury & Online Gateway Payments (RN6)
+    match /pagos_tesoreria/{reciboId} {
+      allow get: if isStaff() && isValidId(reciboId);
+      allow list: if isStaff();
+      allow create: if isValidId(reciboId)
+        && isValidPagoTesoreria(incoming())
+        && (
+          hasAnyRole(['admin', 'tesorero'])
+          || (
+            incoming().metodo_pago in ['nequi', 'pse', 'tarjeta']
+            && ('canal_pago' in incoming())
+            && incoming().canal_pago == 'pasarela_en_linea'
+            && exists(/databases/$(database)/documents/solicitudes/$(incoming().radicado))
+            && get(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.estado == 'pendiente_pago'
+            && get(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.tarifa_cop == incoming().monto_cop
+            && get(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.docKey == incoming().docKey
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.estado == 'emitido'
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.pagado == true
+            && getAfter(/databases/$(database)/documents/solicitudes/$(incoming().radicado)).data.recibo_pago == reciboId
+          )
+        );
+      allow update, delete: if false;
+    }
+
+    // Immutable Append-Only Audit Log (RN7)
+    match /auditoria/{auditId} {
+      allow get: if isStaff() && isValidId(auditId);
+      allow list: if isStaff();
+      allow create: if isValidId(auditId) && isValidAuditoria(incoming());
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Staff RBAC Profiles
+    match /funcionarios/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(uid) && isValidFuncionario(incoming(), uid) && (
+        isAdmin()
+        || (isBootstrappedAdmin() && request.auth.uid == uid)
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && incoming().email == request.auth.token.email
+          && incoming().activo == true
+          && exists(/databases/$(database)/documents/autorizaciones_correo/$(request.auth.token.email))
+          && get(/databases/$(database)/documents/autorizaciones_correo/$(request.auth.token.email)).data.activo == true
+          && incoming().rol == get(/databases/$(database)/documents/autorizaciones_correo/$(request.auth.token.email)).data.rol
+        )
+      );
+      allow update: if isAdmin() && isValidId(uid) && isValidFuncionario(incoming(), uid);
+      allow delete: if isAdmin() && isValidId(uid);
+    }
+
+    // Admin-managed email whitelist for onboarding staff and tutors without needing UID first
+    match /autorizaciones_correo/{emailId} {
+      allow get: if isSignedIn() && isValidEmailKey(emailId) && (request.auth.token.email == emailId || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && isValidEmailKey(emailId) && isValidAutorizacionCorreo(incoming(), emailId);
+      allow delete: if isAdmin() && isValidEmailKey(emailId);
+    }
+  }
+}

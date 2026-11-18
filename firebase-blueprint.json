@@ -1,0 +1,273 @@
+{
+  "entities": {
+    "Vereda": {
+      "title": "Vereda",
+      "description": "División territorial del Resguardo Indígena de Pueblo Nuevo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nombre": { "type": "string", "maxLength": 120 },
+        "zona": { "type": "string", "maxLength": 80 },
+        "activa": { "type": "boolean" }
+      },
+      "required": ["id", "nombre", "zona", "activa"]
+    },
+    "TipoDocumento": {
+      "title": "TipoDocumento",
+      "description": "Catálogo de constancias, avales y certificados expedidos por el Cabildo.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "categoria": { "type": "string", "enum": ["constancia", "aval", "certificado"], "maxLength": 32 },
+        "nombre": { "type": "string", "maxLength": 120 },
+        "descripcion": { "type": "string", "maxLength": 500 },
+        "tarifa_cop": { "type": "number" },
+        "requiere_residencia_365": { "type": "boolean" },
+        "requiere_trabajo_social": { "type": "boolean" },
+        "requiere_visto_bueno": { "type": "boolean" },
+        "activo": { "type": "boolean" },
+        "orden": { "type": "number" }
+      },
+      "required": ["id", "categoria", "nombre", "descripcion", "tarifa_cop", "requiere_residencia_365", "requiere_trabajo_social", "requiere_visto_bueno", "activo", "orden"]
+    },
+    "CensoRegistro": {
+      "title": "CensoRegistro",
+      "description": "Registro censal completo de un comunero administrado presencialmente en la Casa del Cabildo.",
+      "type": "object",
+      "properties": {
+        "docKey": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "tipo_documento": { "type": "string", "enum": ["CC", "TI", "RC", "CE"], "maxLength": 8 },
+        "numero_documento": { "type": "string", "maxLength": 32 },
+        "nombres": { "type": "string", "maxLength": 100 },
+        "apellidos": { "type": "string", "maxLength": 100 },
+        "fecha_nacimiento": { "type": "string", "maxLength": 16 },
+        "vereda": { "type": "string", "maxLength": 120 },
+        "fecha_ingreso_censo": { "type": "string", "maxLength": 16 },
+        "fecha_inicio_residencia": { "type": "string", "maxLength": 16 },
+        "estado_censal": { "type": "string", "enum": ["activo", "inactivo", "trasladado"], "maxLength": 20 },
+        "cabeza_familia": { "type": "string", "maxLength": 120 },
+        "telefono": { "type": "string", "maxLength": 32 },
+        "trabajo_social_vigente": { "type": "boolean" },
+        "fecha_trabajo_social": { "type": "string", "maxLength": 16 },
+        "horas_trabajo_social": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["docKey", "tipo_documento", "numero_documento", "nombres", "apellidos", "vereda", "fecha_ingreso_censo", "fecha_inicio_residencia", "estado_censal", "trabajo_social_vigente", "updatedAt", "updatedBy"]
+    },
+    "CensoConsultaPublica": {
+      "title": "CensoConsultaPublica",
+      "description": "Proyección mínima sin PII sensible para validación de requisitos de autoservicio (RN1, RN2, RN4).",
+      "type": "object",
+      "properties": {
+        "docKey": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "tipo_documento": { "type": "string", "enum": ["CC", "TI", "RC", "CE"], "maxLength": 8 },
+        "numero_documento": { "type": "string", "maxLength": 32 },
+        "nombre_completo": { "type": "string", "maxLength": 200 },
+        "vereda": { "type": "string", "maxLength": 120 },
+        "fecha_inicio_residencia": { "type": "string", "maxLength": 16 },
+        "estado_censal": { "type": "string", "enum": ["activo", "inactivo", "trasladado"], "maxLength": 20 },
+        "trabajo_social_vigente": { "type": "boolean" },
+        "fecha_trabajo_social": { "type": "string", "maxLength": 16 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docKey", "tipo_documento", "numero_documento", "nombre_completo", "vereda", "fecha_inicio_residencia", "estado_censal", "trabajo_social_vigente", "updatedAt"]
+    },
+    "Solicitud": {
+      "title": "Solicitud",
+      "description": "Solicitud de documento oficial radicada por autoservicio o secretaría.",
+      "type": "object",
+      "properties": {
+        "radicado": { "type": "string", "maxLength": 40, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "docKey": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "tipo_documento_identidad": { "type": "string", "maxLength": 8 },
+        "numero_documento": { "type": "string", "maxLength": 32 },
+        "solicitante_nombre": { "type": "string", "maxLength": 200 },
+        "vereda": { "type": "string", "maxLength": 120 },
+        "tipo_documento_id": { "type": "string", "maxLength": 64 },
+        "tipo_documento_nombre": { "type": "string", "maxLength": 120 },
+        "categoria": { "type": "string", "enum": ["constancia", "aval", "certificado"], "maxLength": 32 },
+        "motivo": { "type": "string", "maxLength": 300 },
+        "tarifa_cop": { "type": "number" },
+        "requiere_visto_bueno": { "type": "boolean" },
+        "visto_bueno_estado": { "type": "string", "enum": ["no_requerido", "pendiente", "aprobado", "rechazado"], "maxLength": 24 },
+        "visto_bueno_por": { "type": "string", "maxLength": 160 },
+        "visto_bueno_observacion": { "type": "string", "maxLength": 300 },
+        "pagado": { "type": "boolean" },
+        "recibo_pago": { "type": "string", "maxLength": 64 },
+        "estado": { "type": "string", "enum": ["pendiente_visto_bueno", "pendiente_pago", "listo_expedicion", "emitido", "rechazado", "anulado"], "maxLength": 32 },
+        "codigo_verificacion": { "type": "string", "maxLength": 40 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["radicado", "docKey", "tipo_documento_identidad", "numero_documento", "solicitante_nombre", "vereda", "tipo_documento_id", "tipo_documento_nombre", "categoria", "motivo", "tarifa_cop", "requiere_visto_bueno", "visto_bueno_estado", "pagado", "estado", "createdAt", "updatedAt"]
+    },
+    "RadicadosPorDocumento": {
+      "title": "RadicadosPorDocumento",
+      "description": "Índice directo por documento de identidad para consultar radicados propios sin permitir listados masivos.",
+      "type": "object",
+      "properties": {
+        "docKey": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "radicados": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docKey", "radicados", "updatedAt"]
+    },
+    "DocumentoEmitido": {
+      "title": "DocumentoEmitido",
+      "description": "Documento oficial emitido con código alfanumérico y código QR verificable públicamente.",
+      "type": "object",
+      "properties": {
+        "codigo_verificacion": { "type": "string", "maxLength": 40, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "radicado": { "type": "string", "maxLength": 40, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "docKey": { "type": "string", "maxLength": 64 },
+        "solicitante_nombre": { "type": "string", "maxLength": 200 },
+        "tipo_documento_identidad": { "type": "string", "maxLength": 8 },
+        "numero_documento": { "type": "string", "maxLength": 32 },
+        "vereda": { "type": "string", "maxLength": 120 },
+        "tipo_documento_id": { "type": "string", "maxLength": 64 },
+        "tipo_documento_nombre": { "type": "string", "maxLength": 120 },
+        "categoria": { "type": "string", "enum": ["constancia", "aval", "certificado"], "maxLength": 32 },
+        "motivo": { "type": "string", "maxLength": 300 },
+        "tarifa_cop": { "type": "number" },
+        "recibo_pago": { "type": "string", "maxLength": 64 },
+        "autoridad_firmante": { "type": "string", "maxLength": 160 },
+        "fecha_emision": { "type": "string", "format": "date-time" },
+        "vigente": { "type": "boolean" },
+        "motivo_anulacion": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["codigo_verificacion", "radicado", "docKey", "solicitante_nombre", "tipo_documento_identidad", "numero_documento", "vereda", "tipo_documento_id", "tipo_documento_nombre", "categoria", "motivo", "tarifa_cop", "autoridad_firmante", "fecha_emision", "vigente"]
+    },
+    "TrabajoSocial": {
+      "title": "TrabajoSocial",
+      "description": "Registro de cumplimiento de trabajo social comunitario (RN4).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "docKey": { "type": "string", "maxLength": 64 },
+        "comunero_nombre": { "type": "string", "maxLength": 200 },
+        "actividad": { "type": "string", "maxLength": 200 },
+        "fecha": { "type": "string", "maxLength": 16 },
+        "horas": { "type": "number" },
+        "aprobado": { "type": "boolean" },
+        "registrado_por": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "docKey", "comunero_nombre", "actividad", "fecha", "horas", "aprobado", "registrado_por", "createdAt"]
+    },
+    "PagoTesoreria": {
+      "title": "PagoTesoreria",
+      "description": "Recibo de pago registrado en Tesorería del Cabildo (RN6).",
+      "type": "object",
+      "properties": {
+        "recibo_numero": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "radicado": { "type": "string", "maxLength": 40, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "docKey": { "type": "string", "maxLength": 64 },
+        "comunero_nombre": { "type": "string", "maxLength": 200 },
+        "monto_cop": { "type": "number" },
+        "metodo_pago": { "type": "string", "enum": ["efectivo", "transferencia", "consignacion", "nequi", "pse", "tarjeta"], "maxLength": 32 },
+        "canal_pago": { "type": "string", "enum": ["tesoreria_presencial", "pasarela_en_linea"], "maxLength": 32 },
+        "referencia_pasarela": { "type": "string", "maxLength": 80 },
+        "tesorero_nombre": { "type": "string", "maxLength": 160 },
+        "fecha_pago": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recibo_numero", "radicado", "docKey", "comunero_nombre", "monto_cop", "metodo_pago", "tesorero_nombre", "fecha_pago"]
+    },
+    "Auditoria": {
+      "title": "Auditoria",
+      "description": "Bitácora inmutable append-only de todas las operaciones críticas (RN7).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 80, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "accion": { "type": "string", "enum": ["SOLICITUD", "VISTO_BUENO", "RECHAZO", "PAGO", "EXPEDICION", "ANULACION", "CENSO_ACTUALIZACION", "TRABAJO_SOCIAL"], "maxLength": 40 },
+        "entidad": { "type": "string", "maxLength": 40 },
+        "entidad_id": { "type": "string", "maxLength": 80 },
+        "actor": { "type": "string", "maxLength": 160 },
+        "rol": { "type": "string", "maxLength": 40 },
+        "detalle": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "accion", "entidad", "entidad_id", "actor", "rol", "detalle", "timestamp"]
+    },
+    "Funcionario": {
+      "title": "Funcionario",
+      "description": "Perfil y rol RBAC de funcionarios internos del Cabildo.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 160 },
+        "nombre": { "type": "string", "maxLength": 160 },
+        "cargo": { "type": "string", "maxLength": 120 },
+        "rol": { "type": "string", "enum": ["admin", "gobernador", "secretario", "tesorero", "trabajador_social"], "maxLength": 32 },
+        "activo": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "nombre", "cargo", "rol", "activo", "updatedAt"]
+    },
+    "AutorizacionCorreo": {
+      "title": "AutorizacionCorreo",
+      "description": "Lista blanca de correos electrónicos autorizados por el administrador para activar su cuenta de funcionario al iniciar sesión.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 160 },
+        "nombre": { "type": "string", "maxLength": 160 },
+        "cargo": { "type": "string", "maxLength": 120 },
+        "rol": { "type": "string", "enum": ["admin", "gobernador", "secretario", "tesorero", "trabajador_social"], "maxLength": 32 },
+        "activo": { "type": "boolean" },
+        "autorizado_por": { "type": "string", "maxLength": 160 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "nombre", "cargo", "rol", "activo", "autorizado_por", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/veredas/{veredaId}": {
+      "schema": { "$ref": "#/entities/Vereda" },
+      "description": "Catálogo público de veredas del Resguardo Pueblo Nuevo."
+    },
+    "/tipos_documento/{tipoId}": {
+      "schema": { "$ref": "#/entities/TipoDocumento" },
+      "description": "Catálogo público de trámites y documentos con requisitos y tarifas."
+    },
+    "/censo/{docKey}": {
+      "schema": { "$ref": "#/entities/CensoRegistro" },
+      "description": "Registro censal completo con PII restringido exclusivamente a funcionarios."
+    },
+    "/censo_consultas/{docKey}": {
+      "schema": { "$ref": "#/entities/CensoConsultaPublica" },
+      "description": "Proyección puntual para consulta directa sin permitir listados masivos."
+    },
+    "/solicitudes/{radicado}": {
+      "schema": { "$ref": "#/entities/Solicitud" },
+      "description": "Solicitudes de trámites y radicados."
+    },
+    "/radicados_por_documento/{docKey}": {
+      "schema": { "$ref": "#/entities/RadicadosPorDocumento" },
+      "description": "Lista acotada de radicados asociados a un documento de identidad."
+    },
+    "/documentos_emitidos/{codigoVerificacion}": {
+      "schema": { "$ref": "#/entities/DocumentoEmitido" },
+      "description": "Certificados, constancias y avales emitidos verificables por QR."
+    },
+    "/trabajo_social/{registroId}": {
+      "schema": { "$ref": "#/entities/TrabajoSocial" },
+      "description": "Registros de trabajo social comunitario (RN4)."
+    },
+    "/pagos_tesoreria/{reciboId}": {
+      "schema": { "$ref": "#/entities/PagoTesoreria" },
+      "description": "Recibos de caja de Tesorería (RN6)."
+    },
+    "/auditoria/{auditId}": {
+      "schema": { "$ref": "#/entities/Auditoria" },
+      "description": "Bitácora inmutable append-only de auditoría (RN7)."
+    },
+    "/funcionarios/{uid}": {
+      "schema": { "$ref": "#/entities/Funcionario" },
+      "description": "Funcionarios del Cabildo y roles de acceso."
+    },
+    "/autorizaciones_correo/{emailId}": {
+      "schema": { "$ref": "#/entities/AutorizacionCorreo" },
+      "description": "Correos electrónicos autorizados para habilitar cuentas de funcionarios o tutores."
+    }
+  }
+}

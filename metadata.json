@@ -1,0 +1,6 @@
+{
+  "name": "Ventanilla Virtual — Resguardo Indígena Pueblo Nuevo",
+  "description": "Sistema de Información para la Gestión Censal y Expedición de Documentos del Resguardo Indígena de Pueblo Nuevo (Caldono, Cauca).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
