@@ -213,7 +213,7 @@ export async function autoservicioSolicitar(params: {
         accion: 'EXPEDICION' as AccionAuditoria,
         entidad: 'documentos_emitidos',
         entidad_id: codigoVerificacion,
-        actor: 'Ventanilla Virtual (Automática)',
+        actor: 'Portal Virtual (Automático)',
         rol: 'sistema',
         detalle: `Expedición inmediata gratuita de ${tipo.nombre} para ${consulta.docKey} (Radicado ${radicado}).`,
         timestamp: serverTimestamp(),

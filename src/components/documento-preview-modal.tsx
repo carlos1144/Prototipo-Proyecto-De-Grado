@@ -151,8 +151,8 @@ export function DocumentoPreviewModal({ documento, onClose }: DocumentoPreviewMo
                 <div className="text-xs">
                   <p className="font-semibold text-foreground">Verificación pública QR</p>
                   <p className="mt-0.5 font-mono text-foreground">{documento.codigo_verificacion}</p>
-                  <p className="mt-1 max-w-[220px] text-muted-foreground">
-                    Escanea el QR o ingresa el código en la Ventanilla Virtual para validar autenticidad.
+                  <p className="mt-1 max-w-[230px] text-muted-foreground">
+                    Escanea el QR o ingresa el código en el Portal Virtual Cabildo Indígena de Pueblo Nuevo para validar autenticidad.
                   </p>
                 </div>
               </div>

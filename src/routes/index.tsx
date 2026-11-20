@@ -114,7 +114,7 @@ export function Index() {
             Caldono · Cauca
           </p>
           <h1 className="mt-2 max-w-3xl text-balance text-4xl font-semibold leading-tight md:text-5xl">
-            Ventanilla virtual de certificados y trámites
+            Portal Virtual Cabildo Indígena de Pueblo Nuevo
           </h1>
           <p className="mt-3 max-w-2xl text-lg opacity-90">
             Genere constancias, avales y certificados oficiales del resguardo desde donde esté, sin

@@ -973,7 +973,7 @@ export function Ingreso() {
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              Volver a la ventanilla pública
+              Volver al portal virtual
             </Link>
           </div>
         </header>
@@ -1190,7 +1190,7 @@ export function Ingreso() {
           </div>
           <div className="flex items-center gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link to="/">Ventanilla pública</Link>
+              <Link to="/">Portal Virtual</Link>
             </Button>
             <Button
               type="button"
@@ -1347,7 +1347,7 @@ export function Ingreso() {
               {censo.length > 0 && (
                 <div className="rounded-xl border bg-card p-5">
                   <h2 className="text-base font-semibold text-foreground">
-                    Documentos de prueba cargados en Censo (para verificar Ventanilla)
+                    Documentos de prueba cargados en Censo (para verificar el Portal Virtual)
                   </h2>
                   <div className="mt-3 overflow-x-auto">
                     <table className="w-full text-left text-xs">

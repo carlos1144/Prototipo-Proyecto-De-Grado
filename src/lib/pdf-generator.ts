@@ -143,16 +143,11 @@ export async function descargarDocumentoOficialPdf(docData: DocumentoEmitido): P
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8.5);
   pdf.setTextColor(86, 99, 91);
-  pdf.text(
-    'Cualquier entidad pública o privada puede verificar la autenticidad y vigencia',
-    marginX + 40,
-    footerY + 12,
+  const qrInfoLines = pdf.splitTextToSize(
+    `Cualquier entidad pública o privada puede verificar la autenticidad y vigencia de este documento ingresando el código ${docData.codigo_verificacion} en el Portal Virtual Cabildo Indígena de Pueblo Nuevo.`,
+    pageWidth - (marginX + 40) - marginX,
   );
-  pdf.text(
-    `de este documento ingresando el código ${docData.codigo_verificacion} en la Ventanilla Virtual.`,
-    marginX + 40,
-    footerY + 17,
-  );
+  pdf.text(qrInfoLines, marginX + 40, footerY + 12, { lineHeightFactor: 1.35 });
 
   // Signature line
   pdf.setDrawColor(24, 32, 27);

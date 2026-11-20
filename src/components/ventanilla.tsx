@@ -413,7 +413,7 @@ export function Ventanilla({
       {/* Segmented Navigation Tabs */}
       <div
         role="tablist"
-        aria-label="Opciones de ventanilla virtual"
+        aria-label="Opciones del Portal Virtual Cabildo Indígena de Pueblo Nuevo"
         className="grid grid-cols-1 border-b bg-muted/50 sm:grid-cols-3"
       >
         <button
